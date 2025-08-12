@@ -33,12 +33,12 @@ SYM_LF = b('\n')
 SYM_EMPTY = b('')
 
 
-async def exec_with_timeout(coroutine, timeout, *, loop=None):
+async def exec_with_timeout(coroutine, timeout):
     try:
         if LOOP_DEPRECATED:
             return await asyncio.wait_for(coroutine, timeout)
         else:
-            return await asyncio.wait_for(coroutine, timeout, loop=loop)
+            return await asyncio.wait_for(coroutine, timeout)
     except asyncio.TimeoutError as exc:
         raise TimeoutError(exc)
 
@@ -366,8 +366,7 @@ class BaseConnection:
 
     def __init__(self, retry_on_timeout=False, stream_timeout=None,
                  parser_class=DefaultParser, reader_read_size=65535,
-                 encoding='utf-8', decode_responses=False,
-                 *, loop=None):
+                 encoding='utf-8', decode_responses=False):
         self._parser = parser_class(reader_read_size)
         self._stream_timeout = stream_timeout
         self._reader = None
@@ -380,7 +379,6 @@ class BaseConnection:
         self._connect_callbacks = list()
         self.encoding = encoding
         self.decode_responses = decode_responses
-        self.loop = loop
         # flag to show if a connection is waiting for response
         self.awaiting_response = False
         self.last_active_at = time.time()
@@ -448,7 +446,7 @@ class BaseConnection:
 
     async def read_response(self):
         try:
-            response = await exec_with_timeout(self._parser.read_response(), self._stream_timeout, loop=self.loop)
+            response = await exec_with_timeout(self._parser.read_response(), self._stream_timeout)
             self.last_active_at = time.time()
         except TimeoutError:
             self.disconnect()
@@ -573,11 +571,10 @@ class Connection(BaseConnection):
                  db=0, retry_on_timeout=False, stream_timeout=None, connect_timeout=None,
                  ssl_context=None, parser_class=DefaultParser, reader_read_size=65535,
                  encoding='utf-8', decode_responses=False, socket_keepalive=None,
-                 socket_keepalive_options=None, *, loop=None):
+                 socket_keepalive_options=None):
         super(Connection, self).__init__(retry_on_timeout, stream_timeout,
                                          parser_class, reader_read_size,
-                                         encoding, decode_responses,
-                                         loop=loop)
+                                         encoding, decode_responses)
         self.host = host
         self.port = port
         self.password = password
@@ -596,10 +593,8 @@ class Connection(BaseConnection):
         reader, writer = await exec_with_timeout(
             asyncio.open_connection(host=self.host,
                                     port=self.port,
-                                    ssl=self.ssl_context,
-                                    loop=self.loop),
-            self._connect_timeout,
-            loop=self.loop
+                                    ssl=self.ssl_context),
+            self._connect_timeout
         )
         self._reader = reader
         self._writer = writer
@@ -626,11 +621,10 @@ class UnixDomainSocketConnection(BaseConnection):
     def __init__(self, path='', password=None,
                  db=0, retry_on_timeout=False, stream_timeout=None, connect_timeout=None,
                  ssl_context=None, parser_class=DefaultParser, reader_read_size=65535,
-                 encoding='utf-8', decode_responses=False, *, loop=None):
+                 encoding='utf-8', decode_responses=False):
         super(UnixDomainSocketConnection, self).__init__(retry_on_timeout, stream_timeout,
                                                          parser_class, reader_read_size,
-                                                         encoding, decode_responses,
-                                                         loop=loop)
+                                                         encoding, decode_responses)
         self.path = path
         self.db = db
         self.password = password
@@ -644,10 +638,8 @@ class UnixDomainSocketConnection(BaseConnection):
     async def _connect(self):
         reader, writer = await exec_with_timeout(
             asyncio.open_unix_connection(path=self.path,
-                                         ssl=self.ssl_context,
-                                         loop=self.loop),
-            self._connect_timeout,
-            loop=self.loop
+                                         ssl=self.ssl_context),
+            self._connect_timeout
         )
         self._reader = reader
         self._writer = writer

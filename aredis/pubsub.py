@@ -324,10 +324,9 @@ class PubSubWorkerThread(threading.Thread):
         if self.loop:
             unsubscribed = asyncio.run_coroutine_threadsafe(self.pubsub.unsubscribe(), self.loop)
             punsubscribed = asyncio.run_coroutine_threadsafe(self.pubsub.punsubscribe(), self.loop)
-            asyncio.wait(
-                [unsubscribed, punsubscribed],
-                loop=self.loop
-            )
+            # asyncio.wait(
+            #     [unsubscribed, punsubscribed]
+            # )
 
 
 class ClusterPubSub(PubSub):

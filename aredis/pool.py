@@ -170,7 +170,6 @@ class ConnectionPool:
         self.max_connections = max_connections
         self.max_idle_time = max_idle_time
         self.idle_check_interval = idle_check_interval
-        self.loop = self.connection_kwargs.get('loop')
 
         self.reset()
 
